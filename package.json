@@ -1,0 +1,15 @@
+{
+  "name": "stdecrypt",
+  "version": "1.0.0",
+  "description": "",
+  "main": "main.mjs",
+  "scripts": {},
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "base32-decode": "^1.0.0",
+    "base32-encode": "^2.0.0",
+    "miscreant": "^0.3.2"
+  }
+}
