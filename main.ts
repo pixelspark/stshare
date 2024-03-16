@@ -56,7 +56,6 @@ async function main() {
 
       const fileHandle = await open(filePath);
       try {
-        //const fileContentsCrypted = await readFile(filePath); // TODO: make this fully streaming
         let headersSent = false;
         await folder.readFile(fileHandle, fileKey, async (chunk, md) => {
           res.statusCode = 200;
