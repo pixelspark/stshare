@@ -1,9 +1,11 @@
-import { scrypt, hkdf, createCipheriv, createDecipheriv } from "node:crypto";
+import { scrypt, hkdf } from "node:crypto";
 import * as miscreant from "miscreant";
-const prefix = "syncthing";
 import { base32Encode, base32Decode } from "./base32";
 import { FileInfo } from "./bep";
 import { XChaCha20Poly1305 } from "@stablelib/xchacha20poly1305";
+
+const prefix = "syncthing";
+const maxEncryptedPathSegmentLength = 200;
 
 export class EncryptedFolder {
   private constructor(private folderID: string, private key: Buffer) {}
@@ -60,6 +62,15 @@ export class EncryptedFolder {
   }
 
   async encodeFileName(fileNameDecoded: string) {
+    function splitIntoChunks(s: string, chunkSize: number) {
+      if (s.length < chunkSize) return [s];
+      const chunks: string[] = [];
+      for (let a = 0; a < Math.ceil(s.length / chunkSize); a++) {
+        chunks.push(s.slice(a * chunkSize, (a + 1) * chunkSize));
+      }
+      return chunks;
+    }
+
     const aead = await this.aead();
     const encodedFileNameBytes = await (aead as any)._siv.seal(
       Buffer.from(fileNameDecoded, "utf8"),
@@ -74,7 +85,10 @@ export class EncryptedFolder {
       ".syncthing-enc/" +
       encodedFnBase32.substring(1, 3) +
       "/" +
-      encodedFnBase32.substring(3); // TODO add more slashes when name gets too long, every 200 characters
+      splitIntoChunks(
+        encodedFnBase32.substring(3),
+        maxEncryptedPathSegmentLength
+      ).join("/");
     return mangledFileName;
   }
 
