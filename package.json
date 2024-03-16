@@ -1,15 +1,24 @@
 {
-  "name": "stdecrypt",
+  "name": "stshare",
   "version": "1.0.0",
   "description": "",
   "main": "main.mjs",
-  "scripts": {},
+  "scripts": {
+    "run": "ts-node ./main",
+    "key": "ts-node ./filekey",
+    "protoc": "protoc --plugin=./node_modules/.bin/protoc-gen-ts_proto --ts_proto_out=. ./src/bep.proto --ts_proto_opt=esModuleInterop=true --ts_proto_opt=forceLong=bigint"
+  },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "base32-decode": "^1.0.0",
-    "base32-encode": "^2.0.0",
-    "miscreant": "^0.3.2"
+    "@stablelib/xchacha20poly1305": "^1.0.1",
+    "long": "^5.2.3",
+    "miscreant": "^0.3.2",
+    "protobufjs": "^7.2.6"
+  },
+  "devDependencies": {
+    "ts-node": "^10.9.2",
+    "ts-proto": "^1.169.1"
   }
 }
