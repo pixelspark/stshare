@@ -1,5 +1,5 @@
 import { EncryptedFolder } from "./src/syncthing";
-import { readFile } from "node:fs/promises";
+import { open } from "node:fs/promises";
 import { join, normalize, parse } from "node:path";
 import { createServer } from "node:http";
 import { base32Decode, base32Encode } from "./src/base32";
@@ -54,45 +54,51 @@ async function main() {
         throw new Error("no_keys");
       }
 
-      const fileContentsCrypted = await readFile(filePath); // TODO: make this fully streaming
-      let headersSent = false;
-      folder.readFile(fileContentsCrypted, fileKey, async (chunk, md) => {
-        res.statusCode = 200;
-        if (!chunk) {
-          res.end();
-          return;
-        }
+      const fileHandle = await open(filePath);
+      try {
+        //const fileContentsCrypted = await readFile(filePath); // TODO: make this fully streaming
+        let headersSent = false;
+        await folder.readFile(fileHandle, fileKey, async (chunk, md) => {
+          res.statusCode = 200;
+          if (!chunk) {
+            res.end();
+            return;
+          }
 
-        // Send headers
-        if (!headersSent) {
-          headersSent = true;
-          const fileNamePlain = md.name;
-          const pathInfo = parse(fileNamePlain);
+          // Send headers
+          if (!headersSent) {
+            headersSent = true;
+            const fileNamePlain = md.name;
+            const pathInfo = parse(fileNamePlain);
 
-          const fileNameEncoded = encodeURIComponent(
-            `${pathInfo.name}${pathInfo.ext}`
-          );
-          res.setHeader(
-            "Content-disposition",
-            `${
-              download ? "attachment" : "inline"
-            }; filename="${fileNameEncoded}"`
-          );
-        }
+            const fileNameEncoded = encodeURIComponent(
+              `${pathInfo.name}${pathInfo.ext}`
+            );
+            res.setHeader(
+              "Content-disposition",
+              `${
+                download ? "attachment" : "inline"
+              }; filename="${fileNameEncoded}"`
+            );
+          }
 
-        // Send chunk
-        await new Promise<void>((resolve, reject) => {
-          res.write(chunk, (err?: Error | null) => {
-            if (err) {
-              reject(err);
-              return;
-            }
-            resolve();
+          // Send chunk
+          await new Promise<void>((resolve, reject) => {
+            res.write(chunk, (err?: Error | null) => {
+              if (err) {
+                reject(err);
+                return;
+              }
+              resolve();
+            });
           });
         });
-      });
+      } finally {
+        await fileHandle.close();
+      }
     } catch (e) {
       res.statusCode = 500;
+      console.error(e);
       return res.end("error");
     }
   });

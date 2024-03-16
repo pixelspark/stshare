@@ -3,6 +3,7 @@ import * as miscreant from "miscreant";
 import { base32Encode, base32Decode } from "./base32";
 import { FileInfo } from "./bep";
 import { XChaCha20Poly1305 } from "@stablelib/xchacha20poly1305";
+import { type FileHandle } from "node:fs/promises";
 
 const prefix = "syncthing";
 const maxEncryptedPathSegmentLength = 200;
@@ -111,17 +112,24 @@ export class EncryptedFolder {
   }
 
   async readFile(
-    file: Buffer,
+    file: FileHandle,
     fileKey: Buffer,
     callback: (chunk: Uint8Array | null, metadata: FileInfo) => Promise<void>
   ) {
     // First obtain the length of the encrypted ('fake') file info structure
-    const fileLength = file.length;
-    const fakeFileInfoLength = file.readInt32BE(file.length - 4);
+    const stats = await file.stat();
+    const fileLength = stats.size;
 
-    const fakeFileInfoData = file.subarray(
-      file.length - 4 - fakeFileInfoLength,
-      file.length - 4
+    const lengthBuffer = Buffer.alloc(4);
+    await file.read(lengthBuffer, 0, 4, fileLength - 4);
+    const fakeFileInfoLength = lengthBuffer.readInt32BE(0);
+
+    const fakeFileInfoData = Buffer.alloc(fakeFileInfoLength);
+    await file.read(
+      fakeFileInfoData,
+      0,
+      fakeFileInfoLength,
+      fileLength - 4 - fakeFileInfoLength
     );
     const fakeFileInfo = FileInfo.decode(fakeFileInfoData);
 
@@ -139,8 +147,6 @@ export class EncryptedFolder {
     );
 
     // Decrypt them blocks
-    let rest = file;
-
     for (
       let blockIndex = 0;
       blockIndex < fakeFileInfo.blocks.length;
@@ -148,8 +154,8 @@ export class EncryptedFolder {
     ) {
       const block = fakeFileInfo.blocks[blockIndex];
       const blockSize = block.size;
-      const blockData = rest.subarray(0, blockSize);
-      rest = rest.subarray(blockSize);
+      const blockData = Buffer.alloc(blockSize);
+      await file.read(blockData, 0, blockSize, Number(block.offset));
       let blockPlainData = await this.decryptBlock(blockData, fileKey);
       const realBlockSize = fileInfo.blocks[blockIndex].size;
 
