@@ -6,6 +6,7 @@
   "scripts": {
     "run": "ts-node ./main",
     "key": "ts-node ./filekey",
+    "decrypt": "ts-node ./decrypt",
     "protoc": "protoc --plugin=./node_modules/.bin/protoc-gen-ts_proto --ts_proto_out=. ./src/bep.proto --ts_proto_opt=esModuleInterop=true --ts_proto_opt=forceLong=bigint"
   },
   "keywords": [],

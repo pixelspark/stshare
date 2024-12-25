@@ -111,7 +111,7 @@ export class EncryptedFolder {
     });
   }
 
-  async readFile(
+  static async readFile(
     file: FileHandle,
     fileKey: Buffer,
     callback: (chunk: Uint8Array | null, metadata: FileInfo) => Promise<void>
@@ -156,7 +156,10 @@ export class EncryptedFolder {
       const blockSize = block.size;
       const blockData = Buffer.alloc(blockSize);
       await file.read(blockData, 0, blockSize, Number(block.offset));
-      let blockPlainData = await this.decryptBlock(blockData, fileKey);
+      let blockPlainData = await EncryptedFolder.decryptBlock(
+        blockData,
+        fileKey
+      );
       const realBlockSize = fileInfo.blocks[blockIndex].size;
 
       // Remove any random padding
@@ -168,7 +171,7 @@ export class EncryptedFolder {
     await callback(null, fileInfo);
   }
 
-  private async decryptBlock(blockData: Buffer, fileKey: Buffer) {
+  private static async decryptBlock(blockData: Buffer, fileKey: Buffer) {
     const blockNonceLength = 24;
     const blockNonceData = blockData.subarray(0, blockNonceLength);
 

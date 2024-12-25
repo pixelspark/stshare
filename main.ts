@@ -57,41 +57,45 @@ async function main() {
       const fileHandle = await open(filePath);
       try {
         let headersSent = false;
-        await folder.readFile(fileHandle, fileKey, async (chunk, md) => {
-          res.statusCode = 200;
-          if (!chunk) {
-            res.end();
-            return;
-          }
+        await EncryptedFolder.readFile(
+          fileHandle,
+          fileKey,
+          async (chunk, md) => {
+            res.statusCode = 200;
+            if (!chunk) {
+              res.end();
+              return;
+            }
 
-          // Send headers
-          if (!headersSent) {
-            headersSent = true;
-            const fileNamePlain = md.name;
-            const pathInfo = parse(fileNamePlain);
+            // Send headers
+            if (!headersSent) {
+              headersSent = true;
+              const fileNamePlain = md.name;
+              const pathInfo = parse(fileNamePlain);
 
-            const fileNameEncoded = encodeURIComponent(
-              `${pathInfo.name}${pathInfo.ext}`
-            );
-            res.setHeader(
-              "Content-disposition",
-              `${
-                download ? "attachment" : "inline"
-              }; filename="${fileNameEncoded}"`
-            );
-          }
+              const fileNameEncoded = encodeURIComponent(
+                `${pathInfo.name}${pathInfo.ext}`
+              );
+              res.setHeader(
+                "Content-disposition",
+                `${
+                  download ? "attachment" : "inline"
+                }; filename="${fileNameEncoded}"`
+              );
+            }
 
-          // Send chunk
-          await new Promise<void>((resolve, reject) => {
-            res.write(chunk, (err?: Error | null) => {
-              if (err) {
-                reject(err);
-                return;
-              }
-              resolve();
+            // Send chunk
+            await new Promise<void>((resolve, reject) => {
+              res.write(chunk, (err?: Error | null) => {
+                if (err) {
+                  reject(err);
+                  return;
+                }
+                resolve();
+              });
             });
-          });
-        });
+          }
+        );
       } finally {
         await fileHandle.close();
       }

@@ -103,6 +103,10 @@ npm install
 npm run run
 ```
 
+```sh
+npm run --silent decrypt FILEKY PATH_TO_ENCRYPTED_FILE > decryptedfile.ext
+```
+
 ## Development
 
 Re-generate protoc:
